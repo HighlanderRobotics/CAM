@@ -1,19 +1,19 @@
 /**
-  Copyright (C) 2012-2022 by Autodesk, Inc.
+  Copyright (C) 2012-2023 by Autodesk, Inc.
   All rights reserved.
 
   Laguna CNC post processor configuration.
 
-  $Revision: 43938 a0a9bf78ef40b69cf40aa14f458fffcbbeb11e58 $
-  $Date: 2022-09-02 11:26:16 $
+  $Revision: 44055 8f4a51432cc3ac8d9ae4334a3aaff7e6120c8501 $
+  $Date: 2023-02-27 15:27:44 $
 
   FORKID {09DC4A40-CFD9-4D89-91D5-70118B5F727E}
 */
 
 description = "Laguna CNC";
 vendor = "Laguna";
-endorUrl = "http://www.lagunatools.com/cnc";
-legal = "Copyright (C) 2012-2022 by Autodesk, Inc.";
+vendorUrl = "http://www.lagunatools.com/cnc";
+legal = "Copyright (C) 2012-2023 by Autodesk, Inc.";
 certificationLevel = 2;
 minimumRevision = 45821;
 
@@ -455,6 +455,27 @@ function forceAny() {
   forceFeed();
 }
 
+function forceModals() {
+  if (arguments.length == 0) { // reset all modal variables listed below
+    if (typeof gMotionModal != "undefined") {
+      gMotionModal.reset();
+    }
+    if (typeof gPlaneModal != "undefined") {
+      gPlaneModal.reset();
+    }
+    if (typeof gAbsIncModal != "undefined") {
+      gAbsIncModal.reset();
+    }
+    if (typeof gFeedModeModal != "undefined") {
+      gFeedModeModal.reset();
+    }
+  } else {
+    for (var i in arguments) {
+      arguments[i].reset(); // only reset the modal variable passed to this function
+    }
+  }
+}
+
 function FeedContext(id, description, feed) {
   this.id = id;
   this.description = description;
@@ -725,17 +746,17 @@ function isProbeOperation() {
 }
 
 function onSection() {
-  var forceToolAndRetract = optionalSection && !currentSection.isOptional();
+  var forceSectionRestart = optionalSection && !currentSection.isOptional();
   optionalSection = currentSection.isOptional();
 
-  var insertToolCall = forceToolAndRetract || isFirstSection() ||
+  var insertToolCall = forceSectionRestart || isFirstSection() ||
     currentSection.getForceToolChange && currentSection.getForceToolChange() ||
     (tool.number != getPreviousSection().getTool().number);
 
   retracted = false;
-  var newWorkOffset = isFirstSection() ||
+  var newWorkOffset = isFirstSection() || forceSectionRestart ||
     (getPreviousSection().workOffset != currentSection.workOffset); // work offset changes
-  var newWorkPlane = isFirstSection() ||
+  var newWorkPlane = isFirstSection() || forceSectionRestart ||
     !isSameDirection(getPreviousSection().getGlobalFinalToolAxis(), currentSection.getGlobalInitialToolAxis()) ||
     (currentSection.isOptimizedForMachine() && getPreviousSection().isOptimizedForMachine() &&
       Vector.diff(getPreviousSection().getFinalToolAxisABC(), currentSection.getInitialToolAxisABC()).length > 1e-4) ||
@@ -780,6 +801,7 @@ function onSection() {
   }
 
   if (insertToolCall) {
+    forceModals();
     forceWorkPlane();
 
     setCoolant(COOLANT_OFF);
@@ -835,6 +857,9 @@ function onSection() {
     }
 */
   }
+
+  // Output modal commands here
+  writeBlock(gPlaneModal.format(17), gAbsIncModal.format(90), gFeedModeModal.format(94));
 
   // wcs
   if (insertToolCall) { // force work offset when changing tool
@@ -922,7 +947,6 @@ function onSection() {
   if (insertToolCall || retracted || (!isFirstSection() && getPreviousSection().isMultiAxis())) {
 
     gMotionModal.reset();
-    writeBlock(gPlaneModal.format(17));
 
     // assumes a Head configuration uses TCP on a Fanuc controller
     var offsetCode = 43;
