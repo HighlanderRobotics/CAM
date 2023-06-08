@@ -12,7 +12,7 @@
 
 description = "Laguna CNC";
 vendor = "Laguna";
-vendorUrl = "http://www.lagunatools.com/cnc";
+endorUrl = "http://www.lagunatools.com/cnc";
 legal = "Copyright (C) 2012-2022 by Autodesk, Inc.";
 certificationLevel = 2;
 minimumRevision = 45821;
@@ -140,7 +140,7 @@ properties = {
       {title:"G53", id:"G53"},
       {title:"Clearance Height", id:"clearanceHeight"}
     ],
-    value: "G53",
+    value: "clearanceHeight",
     scope: "post"
   }
 };
